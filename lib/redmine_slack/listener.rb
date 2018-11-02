@@ -6,10 +6,14 @@ class SlackListener < Redmine::Hook::Listener
 
 		channel = channel_for_project issue.project
 		url = url_for_project issue.project
-		if issue.assigned_to_id
-			user = User.find(issue.assigned_to_id)
-			assigned_slack_username = get_slack_username user
-		end
+
+                assigned_user_msg = escape(issue.assigned_to.to_s)
+                if issue.assigned_to_id
+                        user = User.find(issue.assigned_to_id)
+                        assigned_slack_username = get_slack_username user
+                        assigned_user_msg << " (<@#{get_slack_user_id user}>)"
+                end
+
 
 		msg = "[#{escape issue.project}] #{escape issue.author} created <#{object_url issue}|#{escape issue}>#{mentions issue.description}"
 
@@ -25,7 +29,7 @@ class SlackListener < Redmine::Hook::Listener
 			:short => true
 		}, {
 			:title => I18n.t("field_assigned_to"),
-			:value => escape(issue.assigned_to.to_s),
+			:value => assigned_user_msg,
 			:short => true
 		}]
 
@@ -386,4 +390,10 @@ private
         cf = UserCustomField.find_by_name("Slack Username")
         return (user.custom_value_for(cf).value rescue nil)
     end
+
+    def get_slack_user_id(user)
+        cf = UserCustomField.find_by_name("Slack User Id")
+        return (user.custom_value_for(cf).value rescue nil)
+    end
+
 end
